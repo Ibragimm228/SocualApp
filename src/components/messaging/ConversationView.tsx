@@ -38,7 +38,42 @@ const MessageBubble = ({
             isSelf ? "bg-blue-500 text-white" : "bg-gray-100 dark:bg-gray-800"
           }`}
         >
-          <p className="text-sm">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap">
+            {message.content.split("\n").map((line, i) => {
+              // Match markdown image and link syntax
+              const imgMatch = line.match(/!\[([^\]]*)\]\(([^\)]*)\)/);
+              const linkMatch = line.match(/\[([^\]]*)\]\(([^\)]*)\)/);
+
+              if (imgMatch) {
+                return (
+                  <img
+                    key={i}
+                    src={imgMatch[2]}
+                    alt={imgMatch[1]}
+                    className="max-w-[300px] rounded-lg my-2"
+                  />
+                );
+              } else if (linkMatch) {
+                return (
+                  <a
+                    key={i}
+                    href={linkMatch[2]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    {linkMatch[1]}
+                  </a>
+                );
+              }
+              return (
+                <span key={i}>
+                  {line}
+                  <br />
+                </span>
+              );
+            })}
+          </p>
           <div
             className={`flex items-center gap-1 text-xs mt-1 ${
               isSelf ? "text-blue-100" : "text-gray-500"

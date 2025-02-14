@@ -34,7 +34,7 @@ const UserSearchDialog = () => {
         .from("profiles")
         .select("*")
         .neq("id", user?.id)
-        .ilike("username", `%${query}%`)
+        .eq("username", query.trim())
         .limit(5);
 
       if (error) throw error;
@@ -47,6 +47,35 @@ const UserSearchDialog = () => {
   };
 
   const handleStartConversation = async (userId: string) => {
+    // Check if they're friends first
+    const { data: friendshipData } = await supabase
+      .from("friend_requests")
+      .select()
+      .or(
+        `and(sender_id.eq.${user?.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user?.id})`,
+      )
+      .eq("status", "accepted");
+
+    if (!friendshipData || friendshipData.length === 0) {
+      // Send friend request
+      const { error: requestError } = await supabase
+        .from("friend_requests")
+        .insert({
+          sender_id: user?.id,
+          receiver_id: userId,
+          status: "pending",
+        });
+
+      if (requestError) {
+        console.error("Error sending friend request:", requestError);
+        return;
+      }
+
+      alert("Friend request sent!");
+      setOpen(false);
+      return;
+    }
+
     await startConversation(userId);
     setOpen(false);
   };

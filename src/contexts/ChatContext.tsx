@@ -99,17 +99,34 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchConversations = async () => {
     try {
       // Get conversations and their participants in a single query
+      // First get the conversations where the user is a participant
+      const { data: participantData, error: participantError } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("profile_id", user?.id);
+
+      if (participantError) throw participantError;
+
+      if (!participantData || participantData.length === 0) {
+        setConversations([]);
+        return;
+      }
+
+      const conversationIds = participantData.map((p) => p.conversation_id);
+
+      // Then get the full conversation data
+      // Get conversations with their participants
       const { data: conversationsData, error: conversationsError } =
         await supabase
           .from("conversations")
           .select(
             `
-            *,
-            participants:conversation_participants!inner(profile:profiles!inner(*)),
-            messages!left(content, created_at, sender_id, read_at)
-          `,
+          *,
+          conversation_participants!inner (profile:profiles!inner(*)),
+          messages!left (content, created_at, sender_id, read_at)
+        `,
           )
-          .eq("conversation_participants.profile_id", user?.id)
+          .in("id", conversationIds)
           .order("created_at", { ascending: false });
 
       if (conversationsError) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -7,7 +7,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Smile, Paperclip, Send, Bold, Italic, Link } from "lucide-react";
+import {
+  Smile,
+  Paperclip,
+  Send,
+  Bold,
+  Italic,
+  Link,
+  Image,
+} from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage?: (message: string) => void;
@@ -21,7 +29,9 @@ const MessageInput = ({
   disabled = false,
 }: MessageInputProps) => {
   const [message, setMessage] = useState("");
-  const { currentConversation, setTyping } = useChat();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { currentConversation, setTyping, uploadFile } = useChat();
 
   useEffect(() => {
     if (currentConversation) {
@@ -29,6 +39,27 @@ const MessageInput = ({
       setTyping(currentConversation.id, typing);
     }
   }, [message, currentConversation]);
+
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const url = await uploadFile(file);
+      if (file.type.startsWith("image/")) {
+        setMessage((prev) => `${prev} ![${file.name}](${url})`);
+      } else {
+        setMessage((prev) => `${prev} [${file.name}](${url})`);
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSend = () => {
     if (message.trim()) {
@@ -95,14 +126,29 @@ const MessageInput = ({
             </Tooltip>
           </TooltipProvider>
 
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileUpload}
+            accept="image/*,.pdf,.doc,.docx,.txt"
+          />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
                   <Paperclip className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Attach File</TooltipContent>
+              <TooltipContent>
+                {uploading ? "Uploading..." : "Attach File"}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 

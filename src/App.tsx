@@ -14,22 +14,21 @@ function App() {
     <AuthProvider>
       <ChatProvider>
         <Suspense fallback={<p>Loading...</p>}>
-          {import.meta.env.VITE_TEMPO === "true" ? (
-            useRoutes(routes)
-          ) : (
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-            </Routes>
-          )}
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            {import.meta.env.VITE_TEMPO === "true" && (
+              <Route path="/tempobook/*" element={useRoutes(routes)} />
+            )}
+          </Routes>
         </Suspense>
         <Toaster />
       </ChatProvider>
