@@ -25,10 +25,9 @@ function App() {
             />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            {import.meta.env.VITE_TEMPO === "true" && (
-              <Route path="/tempobook/*" element={useRoutes(routes)} />
-            )}
           </Routes>
+          {/* Tempo routes */}
+          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </Suspense>
         <Toaster />
       </ChatProvider>

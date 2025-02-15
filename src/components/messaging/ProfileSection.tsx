@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { supabase } from "@/lib/supabase";
 import { Button } from "../ui/button";
-import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Settings, LogOut, User, Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import FriendRequestsDialog from "./FriendRequestsDialog";
 
 interface ProfileSectionProps {
   userName?: string;
@@ -21,16 +22,17 @@ interface ProfileSectionProps {
   onLogoutClick?: () => void;
 }
 
-import FriendRequestsDialog from "./FriendRequestsDialog";
-
 const ProfileSection = ({
   userName = "John Doe",
   userAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
   status = "online",
   onSettingsClick = () => {},
-  onLogoutClick,
+  onLogoutClick = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error logging out:", error.message);
+  },
 }: ProfileSectionProps) => {
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [friendRequests, setFriendRequests] = useState([]);
   const [showRequests, setShowRequests] = useState(false);
 
@@ -41,7 +43,7 @@ const ProfileSection = ({
         .select(
           `
           *,
-          sender:profiles!friend_requests_sender_id_fkey(*)
+          sender:profiles(*)
         `,
         )
         .eq("receiver_id", user?.id)
@@ -55,37 +57,30 @@ const ProfileSection = ({
   };
 
   useEffect(() => {
-    fetchFriendRequests();
+    if (user) {
+      fetchFriendRequests();
 
-    const channel = supabase
-      .channel("friend_requests")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "friend_requests",
-        },
-        () => {
-          fetchFriendRequests();
-        },
-      )
-      .subscribe();
+      const channel = supabase
+        .channel("friend_requests")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "friend_requests",
+          },
+          () => {
+            fetchFriendRequests();
+          },
+        )
+        .subscribe();
 
-    return () => {
-      channel.unsubscribe();
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      navigate("/login");
-    } catch (error) {
-      console.error("Error logging out:", error.message);
+      return () => {
+        channel.unsubscribe();
+      };
     }
-  };
+  }, [user]);
+
   return (
     <div className="flex items-center justify-between p-4 border-t bg-background">
       <div className="flex items-center gap-3">
@@ -139,7 +134,7 @@ const ProfileSection = ({
               <User className="mr-2 h-4 w-4" />
               <span>Profile Settings</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onLogoutClick || handleLogout}>
+            <DropdownMenuItem onClick={onLogoutClick}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
