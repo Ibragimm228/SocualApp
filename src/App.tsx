@@ -10,10 +10,15 @@ import { Toaster } from "./components/ui/toaster";
 import routes from "tempo-routes";
 
 function App() {
+  // Handle tempo routes
+  const tempoRoutes =
+    import.meta.env.VITE_TEMPO === "true" ? useRoutes(routes) : null;
+
   return (
     <AuthProvider>
       <ChatProvider>
         <Suspense fallback={<p>Loading...</p>}>
+          {tempoRoutes}
           <Routes>
             <Route
               path="/"
@@ -25,9 +30,10 @@ function App() {
             />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            {import.meta.env.VITE_TEMPO === "true" && (
+              <Route path="/tempobook/*" element={null} />
+            )}
           </Routes>
-          {/* Tempo routes */}
-          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </Suspense>
         <Toaster />
       </ChatProvider>
